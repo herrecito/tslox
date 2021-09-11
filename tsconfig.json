@@ -14,6 +14,7 @@
         "Token.ts",
         "Scanner.ts",
         "types.ts",
-        "AstPrinter.ts"
+        "AstPrinter.ts",
+        "Parser.ts"
     ]
 }

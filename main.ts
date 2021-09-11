@@ -3,6 +3,8 @@ import * as readline from "readline"
 
 import Token from "./Token"
 import Scanner from "./Scanner"
+import Parser from "./Parser"
+import AstPrinter from "./AstPrinter"
 
 export class Lox {
     static hadError = false
@@ -50,14 +52,26 @@ export class Lox {
     static run(source: string): void {
         const scanner = new Scanner(source)
         const tokens: Token[] = scanner.scanTokens()
+        const parser = new Parser(tokens)
+        const expression = parser.parse()
 
-        for (const token of tokens) {
-            console.log(`${token}`)
+        if (expression !== undefined) {
+            console.log(new AstPrinter().print(expression))
+        } else {
+            console.log("Couldn't parse")
         }
     }
 
     static error(line: number, message: string): void {
         this.report(line, "", message)
+    }
+
+    static errorWithToken(token: Token, message: string): void {
+        if (token.type == "EOF") {
+            this.report(token.line, ` at end`, message)
+        } else {
+            this.report(token.line, `at '${token.lexeme}'`, message)
+        }
     }
 
     static report(line: number, where: string, message: string): void {

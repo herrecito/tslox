@@ -1,4 +1,4 @@
-import Token from "./Token"
+import Token, { LiteralType } from "./Token"
 
 export interface Expr {
     accept<R>(visitor: Visitor<R>): R
@@ -33,9 +33,9 @@ export class Grouping implements Expr {
 }
 
 export class Literal implements Expr {
-    value: string | number | undefined
+    value: LiteralType
 
-    constructor(value: string | number | undefined) {
+    constructor(value: LiteralType) {
         this.value = value
     }
 

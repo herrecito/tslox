@@ -14,14 +14,16 @@ export type TokenType =
     | "AND" | "CLASS" | "ELSE" | "FALSE" | "FUN" | "FOR" | "IF" | "NIL" | "OR" | "PRINT" | "RETURN"
     | "SUPER" | "THIS" | "TRUE" | "VAR" | "WHILE" | "EOF"
 
+export type LiteralType = string | number | boolean | undefined
+
 export default class Token {
     type: TokenType
     lexeme: string
-    literal?: string | number
+    literal: LiteralType
     line: number
 
 
-    constructor(type: TokenType, lexeme: string, literal: string | number | undefined, line: number) {
+    constructor(type: TokenType, lexeme: string, literal: LiteralType, line: number) {
         this.type = type
         this.lexeme = lexeme
         this.literal = literal
