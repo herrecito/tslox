@@ -2,7 +2,7 @@ import { performance } from "perf_hooks"
 
 import Token, { ValueType } from "./Token"
 import {
-    Var, Variable, Stmt, StmtVisitor, Print, Expression, Expr, Literal, Visitor, Grouping, Unary,
+    Var, Variable, Stmt, StmtVisitor, Print, Expression, Expr, Literal, ExprVisitor, Grouping, Unary,
     Binary, Assign, Block, If, Logical, While, Call, Func, Return
 } from "./types"
 
@@ -27,7 +27,7 @@ export class ReturnException {
     }
 }
 
-export default class Interpreter implements Visitor<ValueType>, StmtVisitor<void> {
+export default class Interpreter implements ExprVisitor<ValueType>, StmtVisitor<void> {
     globals = new Environment()
     #environment = this.globals
     locals = new Map<Expr, number>()
@@ -157,7 +157,6 @@ export default class Interpreter implements Visitor<ValueType>, StmtVisitor<void
             args.push(this.evaluate(arg))
         }
 
-        // TODO problem! can check "implementsof"
         if (!(callee instanceof LoxCallable)) {
             throw new RuntimeError(expr.paren, "Can only call functions and classes.")
         }

@@ -1,7 +1,5 @@
 import Token, { ValueType } from "./Token"
 
-// TODO namespace this
-
 export interface Stmt {
     accept<R>(visitor: StmtVisitor<R>): R
 }
@@ -117,7 +115,7 @@ export class Var implements Stmt {
 }
 
 export interface Expr {
-    accept<R>(visitor: Visitor<R>): R
+    accept<R>(visitor: ExprVisitor<R>): R
 }
 
 export class Assign implements Expr {
@@ -129,7 +127,7 @@ export class Assign implements Expr {
         this.value = value
     }
 
-    accept<R>(visitor: Visitor<R>): R {
+    accept<R>(visitor: ExprVisitor<R>): R {
         return visitor.visitAssignExpr(this)
     }
 }
@@ -145,7 +143,7 @@ export class Binary implements Expr {
         this.right = right
     }
 
-    accept<R>(visitor: Visitor<R>): R {
+    accept<R>(visitor: ExprVisitor<R>): R {
         return visitor.visitBinaryExpr(this)
     }
 }
@@ -161,7 +159,7 @@ export class Call implements Expr {
         this.args = args
     }
 
-    accept<R>(visitor: Visitor<R>): R {
+    accept<R>(visitor: ExprVisitor<R>): R {
         return visitor.visitCallExpr(this)
     }
 }
@@ -177,7 +175,7 @@ export class Logical implements Expr {
         this.right = right
     }
 
-    accept<R>(visitor: Visitor<R>): R {
+    accept<R>(visitor: ExprVisitor<R>): R {
         return visitor.visitLogicalExpr(this)
     }
 }
@@ -189,7 +187,7 @@ export class Grouping implements Expr {
         this.expression = expression
     }
 
-    accept<R>(visitor: Visitor<R>): R {
+    accept<R>(visitor: ExprVisitor<R>): R {
         return visitor.visitGroupingExpr(this)
     }
 }
@@ -201,7 +199,7 @@ export class Literal implements Expr {
         this.value = value
     }
 
-    accept<R>(visitor: Visitor<R>): R {
+    accept<R>(visitor: ExprVisitor<R>): R {
         return visitor.visitLiteralExpr(this)
     }
 }
@@ -215,7 +213,7 @@ export class Unary implements Expr {
         this.right = right
     }
 
-    accept<R>(visitor: Visitor<R>): R {
+    accept<R>(visitor: ExprVisitor<R>): R {
         return visitor.visitUnaryExpr(this)
     }
 }
@@ -227,12 +225,12 @@ export class Variable implements Expr {
         this.name = name
     }
 
-    accept<R>(visitor: Visitor<R>): R {
+    accept<R>(visitor: ExprVisitor<R>): R {
         return visitor.visitVariableExpr(this)
     }
 }
 
-export interface Visitor<R> {
+export interface ExprVisitor<R> {
     visitBinaryExpr(binary: Binary): R
     visitGroupingExpr(grouping: Grouping): R
     visitLiteralExpr(literal: Literal): R

@@ -55,7 +55,7 @@ export class Lox {
 
     static run(source: string): void {
         const scanner = new Scanner(source)
-        const tokens: Token[] = scanner.scanTokens()
+        const tokens = scanner.scanTokens()
         const parser = new Parser(tokens)
         const statements = parser.parse()
 

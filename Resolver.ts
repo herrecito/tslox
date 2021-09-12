@@ -1,5 +1,5 @@
 import {
-    Visitor, StmtVisitor, Block, Stmt, Var, Variable, Expr, Assign, Func, Expression, If, Print,
+    ExprVisitor, StmtVisitor, Block, Stmt, Var, Variable, Expr, Assign, Func, Expression, If, Print,
     Return, While, Binary, Call, Grouping, Literal, Logical, Unary
 } from "./types"
 import Interpreter from "./Interpreter"
@@ -8,7 +8,7 @@ import { Lox } from "./main"
 
 type FunctionType = "NONE" | "FUNCTION"
 
-export default class Resolver implements StmtVisitor<void>, Visitor<void> {
+export default class Resolver implements StmtVisitor<void>, ExprVisitor<void> {
     interpreter: Interpreter
     scopes = new Array<Map<string, boolean>>()
     currentFunction: FunctionType = "NONE"

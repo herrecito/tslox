@@ -7,7 +7,6 @@ SRCS=(
     "Token.ts"
     "Scanner.ts"
     "types.ts"
-    "AstPrinter.ts"
     "Parser.ts"
     "Interpreter.ts"
     "Environment.ts"
