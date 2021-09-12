@@ -3,7 +3,7 @@ import { Lox } from "./main"
 
 import {
     Assign, Var, Variable, Stmt, Print, Expression, Expr, Binary, Unary, Literal, Grouping, Block,
-    If, Logical, While
+    If, Logical, While, Call, Func, Return
 } from "./types"
 
 class ParseError extends Error {
@@ -32,6 +32,7 @@ export default class Parser {
 
     declaration(): Stmt | undefined {
         try {
+            if (this.match("FUN")) return this.function("function")
             if (this.match("VAR")) return this.varDeclaration()
             return this.statement()
         } catch (e) {
@@ -48,6 +49,7 @@ export default class Parser {
         if (this.match("FOR")) return this.forStatement()
         if (this.match("IF")) return this.ifStatement()
         if (this.match("PRINT")) return this.printStatement()
+        if (this.match("RETURN")) return this.returnStatement()
         if (this.match("WHILE")) return this.whileStatement()
         if (this.match("LEFT_BRACE")) return new Block(this.block())
         return this.expressionStatement()
@@ -113,6 +115,16 @@ export default class Parser {
         return new Print(value)
     }
 
+    returnStatement(): Stmt {
+        const keyword = this.previous()
+        let value: Expr | undefined = undefined
+        if (!this.check("SEMICOLON")) {
+            value = this.expression()
+        }
+        this.consume("SEMICOLON", "Expect ';' after return value.")
+        return new Return(keyword, value)
+    }
+
     whileStatement(): Stmt {
         this.consume("LEFT_PAREN", "Expect '(' after 'while'.")
         const condition = this.expression()
@@ -136,6 +148,26 @@ export default class Parser {
         const expr = this.expression()
         this.consume("SEMICOLON", "Expect ';' after expression.")
         return new Expression(expr)
+    }
+
+    function(kind: string): Func {
+        const name = this.consume("IDENTIFIER", `Expect ${kind} name.`)
+        this.consume("LEFT_PAREN", `Expect '(' after ${kind} name.`)
+        const parameters: Token[] = []
+        if (!this.check("RIGHT_PAREN")) {
+            do {
+                if (parameters.length >= 255) {
+                    this.error(this.peek(), "Can't have more than 255 parameters.")
+                }
+                parameters.push(
+                    this.consume("IDENTIFIER", "Expect parameter name."))
+            } while (this.match("COMMA"))
+        }
+        this.consume("RIGHT_PAREN", "Expect ')' after parameters.")
+
+        this.consume("LEFT_BRACE", `Expect '{' before ${kind} body.`)
+        const body = this.block()
+        return new Func(name, parameters, body)
     }
 
     block(): Stmt[] {
@@ -245,7 +277,37 @@ export default class Parser {
             return new Unary(operator, right)
         }
 
-        return this.primary()
+        return this.call()
+    }
+
+    finishCall(callee: Expr): Expr {
+        const args: Expr[] = []
+        if (!this.check(("RIGHT_PAREN"))) {
+            do {
+                if (args.length >= 255) {
+                    this.error(this.peek(), "Can't have more than 255 arguments.")
+                }
+                args.push(this.expression())
+            } while (this.match("COMMA"))
+        }
+
+        const paren = this.consume("RIGHT_PAREN", "Expect ')' after arguments.")
+
+        return new Call(callee, paren, args)
+    }
+
+    call(): Expr {
+        let expr = this.primary()
+
+        while (true) {
+            if (this.match("LEFT_PAREN")) {
+                expr = this.finishCall(expr)
+            } else {
+                break;
+            }
+        }
+
+        return expr
     }
 
     primary(): Expr {

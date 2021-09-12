@@ -1,11 +1,14 @@
+import { performance } from "perf_hooks"
+
 import Token, { ValueType } from "./Token"
 import {
     Var, Variable, Stmt, StmtVisitor, Print, Expression, Expr, Literal, Visitor, Grouping, Unary,
-    Binary, Assign, Block, If, Logical, While
+    Binary, Assign, Block, If, Logical, While, Call, Func, Return
 } from "./types"
 
 import { Lox } from "./main"
 import Environment from "./Environment"
+import LoxCallable, { LoxFunction } from "./LoxCallable"
 
 export class RuntimeError extends Error {
     token: Token
@@ -16,8 +19,33 @@ export class RuntimeError extends Error {
     }
 }
 
+export class ReturnException {
+    value: ValueType
+
+    constructor(value: ValueType) {
+        this.value = value
+    }
+}
+
 export default class Interpreter implements Visitor<ValueType>, StmtVisitor<void> {
-    #environment = new Environment()
+    globals = new Environment()
+    #environment = this.globals
+
+    constructor() {
+        this.globals.define("clock", new class extends LoxCallable {
+            arity(): number {
+                return 0
+            }
+
+            call(interpreter: Interpreter, args: ValueType[]): ValueType {
+                return performance.now()
+            }
+
+            toString(): string {
+                return "<native fn>"
+            }
+        }())
+    }
 
     visitLiteralExpr(expr: Literal): ValueType {
         return expr.value
@@ -111,6 +139,27 @@ export default class Interpreter implements Visitor<ValueType>, StmtVisitor<void
         return undefined
     }
 
+    visitCallExpr(expr: Call): ValueType {
+        const callee = this.evaluate(expr.callee)
+
+        const args: ValueType[] = []
+        for (const arg of expr.args) {
+            args.push(this.evaluate(arg))
+        }
+
+        // TODO problem! can check "implementsof"
+        if (!(callee instanceof LoxCallable)) {
+            throw new RuntimeError(expr.paren, "Can only call functions and classes.")
+        }
+
+        const func = callee as LoxCallable
+        if (args.length != func.arity()) {
+            throw new RuntimeError(expr.paren,
+                `Expected ${func.arity()} arguments but got ${args.length}.`)
+        }
+        return func.call(this, args)
+    }
+
     checkNumberOperands(operator: Token, left: ValueType, right: ValueType): void {
         if (typeof(left) === "number" && typeof(right) === "number") return
         throw new RuntimeError(operator, "Operands must be numbers")
@@ -159,6 +208,11 @@ export default class Interpreter implements Visitor<ValueType>, StmtVisitor<void
         this.evaluate(stmt.expression)
     }
 
+    visitFuncStmt(stmt: Func): void {
+        const func = new LoxFunction(stmt, this.#environment)
+        this.#environment.define(stmt.name.lexeme, func)
+    }
+
     visitIfStmt(stmt: If): void {
         if (this.isTruthy(this.evaluate(stmt.condition))) {
             this.execute(stmt.thenBranch)
@@ -170,6 +224,12 @@ export default class Interpreter implements Visitor<ValueType>, StmtVisitor<void
     visitPrintStmt(stmt: Print): void {
         const value = this.evaluate(stmt.expression)
         console.log(this.stringify(value))
+    }
+
+    visitReturnStmt(stmt: Return): void {
+        let value: ValueType = undefined
+        if (stmt.value !== undefined) value = this.evaluate(stmt.value)
+        throw new ReturnException(value)
     }
 
     visitVarStmt(stmt: Var): void {

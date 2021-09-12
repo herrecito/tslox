@@ -1,3 +1,5 @@
+import LoxCallable from "./LoxCallable"
+
 export type TokenType =
     // Single-character tokens.
       "LEFT_PAREN" | "RIGHT_PAREN" | "LEFT_BRACE" | "RIGHT_BRACE" | "COMMA" | "DOT" | "MINUS"
@@ -14,7 +16,7 @@ export type TokenType =
     | "AND" | "CLASS" | "ELSE" | "FALSE" | "FUN" | "FOR" | "IF" | "NIL" | "OR" | "PRINT" | "RETURN"
     | "SUPER" | "THIS" | "TRUE" | "VAR" | "WHILE" | "EOF"
 
-export type ValueType = string | number | boolean | undefined
+export type ValueType = string | number | boolean | undefined | LoxCallable
 
 export default class Token {
     type: TokenType

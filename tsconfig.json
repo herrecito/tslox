@@ -17,6 +17,7 @@
         "AstPrinter.ts",
         "Parser.ts",
         "Interpreter.ts",
-        "Environment.ts"
+        "Environment.ts",
+        "LoxCallable.ts"
     ]
 }

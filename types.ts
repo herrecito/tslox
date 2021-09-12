@@ -30,6 +30,22 @@ export class Expression implements Stmt {
     }
 }
 
+export class Func implements Stmt {
+    name: Token
+    params: Token[]
+    body: Stmt[]
+
+    constructor(name: Token, params: Token[], body: Stmt[]) {
+        this.name = name
+        this.params = params
+        this.body = body
+    }
+
+    accept<R>(visitor: StmtVisitor<R>): R {
+        return visitor.visitFuncStmt(this)
+    }
+}
+
 export class If implements Stmt {
     condition: Expr
     thenBranch: Stmt
@@ -55,6 +71,20 @@ export class Print implements Stmt {
 
     accept<R>(visitor: StmtVisitor<R>): R {
         return visitor.visitPrintStmt(this)
+    }
+}
+
+export class Return implements Stmt {
+    keyword: Token
+    value?: Expr
+
+    constructor(keyword: Token, value?: Expr) {
+        this.keyword = keyword
+        this.value = value
+    }
+
+    accept<R>(visitor: StmtVisitor<R>): R {
+        return visitor.visitReturnStmt(this)
     }
 }
 
@@ -117,6 +147,22 @@ export class Binary implements Expr {
 
     accept<R>(visitor: Visitor<R>): R {
         return visitor.visitBinaryExpr(this)
+    }
+}
+
+export class Call implements Expr {
+    callee: Expr
+    paren: Token
+    args: Expr[]
+
+    constructor(callee: Expr, paren: Token, args: Expr[]) {
+        this.callee = callee
+        this.paren = paren
+        this.args = args
+    }
+
+    accept<R>(visitor: Visitor<R>): R {
+        return visitor.visitCallExpr(this)
     }
 }
 
@@ -194,6 +240,7 @@ export interface Visitor<R> {
     visitVariableExpr(variable: Variable): R
     visitAssignExpr(assign: Assign): R
     visitLogicalExpr(expr: Logical): R
+    visitCallExpr(expr: Call): R
 }
 
 export interface StmtVisitor<R> {
@@ -203,4 +250,6 @@ export interface StmtVisitor<R> {
     visitBlockStmt(stmt: Block): R
     visitIfStmt(stmt: If): R
     visitWhileStmt(stmt: While): R
+    visitFuncStmt(stmt: Func): R
+    visitReturnStmt(stmt: Return): R
 }
