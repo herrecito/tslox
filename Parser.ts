@@ -1,7 +1,9 @@
 import Token, { TokenType } from "./Token"
 import { Lox } from "./main"
 
-import { Expr, Binary, Unary, Literal, Grouping } from "./types"
+import {
+    Assign, Var, Variable, Stmt, Print, Expression, Expr, Binary, Unary, Literal, Grouping
+} from "./types"
 
 class ParseError extends Error {
 }
@@ -14,11 +16,26 @@ export default class Parser {
         this.#tokens = tokens
     }
 
-    parse(): Expr | undefined {
+    parse(): Stmt[] {
+        const statements: Stmt[] = []
+        while (!this.isAtEnd()) {
+            const decl = this.declaration()
+            if (decl !== undefined) statements.push(decl) // TODO not handled in the book
+        }
+        return statements
+    }
+
+    expression(): Expr {
+        return this.assignment()
+    }
+
+    declaration(): Stmt | undefined {
         try {
-            return this.expression()
-        } catch(e: unknown) {
+            if (this.match("VAR")) return this.varDeclaration()
+            return this.statement()
+        } catch (e) {
             if (e instanceof ParseError) {
+                this.synchronize()
                 return undefined
             } else {
                 throw e
@@ -26,8 +43,48 @@ export default class Parser {
         }
     }
 
-    expression(): Expr {
-        return this.equality()
+    statement(): Stmt {
+        if (this.match("PRINT")) return this.printStatement()
+        return this.expressionStatement()
+    }
+
+    printStatement(): Stmt {
+        const value = this.expression()
+        this.consume("SEMICOLON", "Expect ';' after value.")
+        return new Print(value)
+    }
+
+    varDeclaration(): Stmt {
+        const name = this.consume("IDENTIFIER", "Expect variable name.")
+        let initializer: Expr | undefined
+        if (this.match("EQUAL")) {
+            initializer = this.expression()
+        }
+        this.consume("SEMICOLON", "Expect ';' after variable declaration.")
+        return new Var(name, initializer)
+    }
+
+    expressionStatement(): Stmt {
+        const expr = this.expression()
+        this.consume("SEMICOLON", "Expect ';' after expression.")
+        return new Expression(expr)
+    }
+
+    assignment(): Expr {
+        const expr = this.equality()
+
+        if (this.match("EQUAL")) {
+            const equals = this.previous()
+            const value = this.assignment()
+
+            if (expr instanceof Variable) {
+                return new Assign(expr.name, value)
+            }
+
+            this.error(equals, "Invalid assignment target.")
+        }
+
+        return expr
     }
 
     equality(): Expr {
@@ -94,6 +151,10 @@ export default class Parser {
 
         if (this.match("NUMBER", "STRING")) {
             return new Literal(this.previous().literal)
+        }
+
+        if (this.match("IDENTIFIER")) {
+            return new Variable(this.previous())
         }
 
         if (this.match("LEFT_PAREN")) {

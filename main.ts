@@ -4,10 +4,13 @@ import * as readline from "readline"
 import Token from "./Token"
 import Scanner from "./Scanner"
 import Parser from "./Parser"
-import AstPrinter from "./AstPrinter"
+
+import Interpreter, { RuntimeError } from "./Interpreter"
 
 export class Lox {
     static hadError = false
+    static hadRuntimeError = false
+    static interpreter = new Interpreter()
 
     static main(): void {
         const { argv } = process
@@ -26,6 +29,7 @@ export class Lox {
         const source = fs.readFileSync(path, "utf8")
         this.run(source)
         if (this.hadError) process.exit(65)
+        if (this.hadRuntimeError) process.exit(70)
     }
 
     static runPrompt(): void {
@@ -53,13 +57,11 @@ export class Lox {
         const scanner = new Scanner(source)
         const tokens: Token[] = scanner.scanTokens()
         const parser = new Parser(tokens)
-        const expression = parser.parse()
+        const statements = parser.parse()
 
-        if (expression !== undefined) {
-            console.log(new AstPrinter().print(expression))
-        } else {
-            console.log("Couldn't parse")
-        }
+        if (this.hadError) return
+
+        this.interpreter.interpret(statements)
     }
 
     static error(line: number, message: string): void {
@@ -72,6 +74,11 @@ export class Lox {
         } else {
             this.report(token.line, `at '${token.lexeme}'`, message)
         }
+    }
+
+    static runtimeError(error: RuntimeError): void {
+        console.log(`${error.message}\n[line ${error.token.line}]`)
+        this.hadRuntimeError = true
     }
 
     static report(line: number, where: string, message: string): void {

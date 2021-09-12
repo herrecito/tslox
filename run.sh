@@ -9,6 +9,8 @@ SRCS=(
     "types.ts"
     "AstPrinter.ts"
     "Parser.ts"
+    "Interpreter.ts"
+    "Environment.ts"
 )
 
 $(npm bin)/eslint ${SRCS[@]} && $(npm bin)/tsc && node main.js $@
