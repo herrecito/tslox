@@ -2,7 +2,7 @@ import Token, { TokenType } from "./Token"
 import { Lox } from "./main"
 
 import {
-    Assign, Var, Variable, Stmt, Print, Expression, Expr, Binary, Unary, Literal, Grouping
+    Assign, Var, Variable, Stmt, Print, Expression, Expr, Binary, Unary, Literal, Grouping, Block
 } from "./types"
 
 class ParseError extends Error {
@@ -45,6 +45,7 @@ export default class Parser {
 
     statement(): Stmt {
         if (this.match("PRINT")) return this.printStatement()
+        if (this.match("LEFT_BRACE")) return new Block(this.block())
         return this.expressionStatement()
     }
 
@@ -68,6 +69,18 @@ export default class Parser {
         const expr = this.expression()
         this.consume("SEMICOLON", "Expect ';' after expression.")
         return new Expression(expr)
+    }
+
+    block(): Stmt[] {
+        const statements: Stmt[] = []
+
+        while (!this.check("RIGHT_BRACE") && !this.isAtEnd()) {
+            const decl = this.declaration()
+            if (decl !== undefined) statements.push(decl) // TODO not handled in the book
+        }
+
+        this.consume("RIGHT_BRACE", "Expect '}' after block.")
+        return statements
     }
 
     assignment(): Expr {

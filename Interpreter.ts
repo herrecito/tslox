@@ -1,6 +1,6 @@
 import Token, { ValueType } from "./Token"
 import {
-    Var, Variable, Stmt, StmtVisitor, Print, Expression, Expr, Literal, Visitor, Grouping, Unary, Binary, Assign,
+    Var, Variable, Stmt, StmtVisitor, Print, Expression, Expr, Literal, Visitor, Grouping, Unary, Binary, Assign, Block
 } from "./types"
 
 import { Lox } from "./main"
@@ -123,6 +123,23 @@ export default class Interpreter implements Visitor<ValueType>, StmtVisitor<void
 
     execute(stmt: Stmt): void {
         stmt.accept(this)
+    }
+
+    executeBlock(statements: Stmt[], environment: Environment): void {
+        const previous = this.#environment
+        try {
+            this.#environment = environment
+
+            for (const stmt of statements) {
+                this.execute(stmt)
+            }
+        } finally {
+            this.#environment = previous
+        }
+    }
+
+    visitBlockStmt(block: Block): void {
+        this.executeBlock(block.statements, new Environment(this.#environment))
     }
 
     visitExpressionStmt(stmt: Expression): void {

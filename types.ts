@@ -1,9 +1,21 @@
 import Token, { ValueType } from "./Token"
 
 // TODO namespace this
-//
+
 export interface Stmt {
     accept<R>(visitor: StmtVisitor<R>): R
+}
+
+export class Block implements Stmt {
+    statements: Stmt[]
+
+    constructor(statements: Stmt[]) {
+        this.statements = statements
+    }
+
+    accept<R>(visitor: StmtVisitor<R>): R {
+        return visitor.visitBlockStmt(this)
+    }
 }
 
 export class Expression implements Stmt {
@@ -141,4 +153,5 @@ export interface StmtVisitor<R> {
     visitExpressionStmt(stmt: Expression): R
     visitPrintStmt(stmt: Print): R
     visitVarStmt(stmt: Var): R
+    visitBlockStmt(stmt: Block): R
 }
