@@ -8,7 +8,7 @@ export default class AstPrinter implements Visitor<string> {
     }
 
     visitCallExpr(expr: Call): string {
-        return `(call)` // TODO
+        return `(call) ${expr}` // TODO
     }
 
     visitLogicalExpr(expr: Logical): string {

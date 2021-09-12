@@ -18,6 +18,7 @@
         "Parser.ts",
         "Interpreter.ts",
         "Environment.ts",
-        "LoxCallable.ts"
+        "LoxCallable.ts",
+        "Resolver.ts"
     ]
 }

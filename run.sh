@@ -12,6 +12,7 @@ SRCS=(
     "Interpreter.ts"
     "Environment.ts"
     "LoxCallable.ts"
+    "Resolver.ts"
 )
 
 $(npm bin)/eslint ${SRCS[@]} && $(npm bin)/tsc && node main.js $@

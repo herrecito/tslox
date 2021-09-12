@@ -30,6 +30,7 @@ export class ReturnException {
 export default class Interpreter implements Visitor<ValueType>, StmtVisitor<void> {
     globals = new Environment()
     #environment = this.globals
+    locals = new Map<Expr, number>()
 
     constructor() {
         this.globals.define("clock", new class extends LoxCallable {
@@ -82,7 +83,16 @@ export default class Interpreter implements Visitor<ValueType>, StmtVisitor<void
     }
 
     visitVariableExpr(expr: Variable): ValueType {
-        return this.#environment.get(expr.name)
+        return this.lookUpVariable(expr.name, expr)
+    }
+
+    lookUpVariable(name: Token, expr: Expr): ValueType {
+        const distance = this.locals.get(expr)
+        if (distance !== undefined) {
+            return this.#environment.getAt(distance, name.lexeme)
+        } else {
+            return this.globals.get(name)
+        }
     }
 
     checkNumberOperand(operator: Token, operand: ValueType): void {
@@ -187,6 +197,10 @@ export default class Interpreter implements Visitor<ValueType>, StmtVisitor<void
         stmt.accept(this)
     }
 
+    resolve(expr: Expr, depth: number): void {
+        this.locals.set(expr, depth)
+    }
+
     executeBlock(statements: Stmt[], environment: Environment): void {
         const previous = this.#environment
         try {
@@ -248,7 +262,12 @@ export default class Interpreter implements Visitor<ValueType>, StmtVisitor<void
 
     visitAssignExpr(expr: Assign): ValueType {
         const value = this.evaluate(expr.value)
-        this.#environment.assign(expr.name, value)
+        const distance = this.locals.get(expr)
+        if (distance !== undefined) {
+            this.#environment.assignAt(distance, expr.name, value)
+        } else {
+            this.globals.assign(expr.name, value)
+        }
         return value
     }
 

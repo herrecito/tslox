@@ -4,8 +4,8 @@ import * as readline from "readline"
 import Token from "./Token"
 import Scanner from "./Scanner"
 import Parser from "./Parser"
-
 import Interpreter, { RuntimeError } from "./Interpreter"
+import Resolver from "./Resolver"
 
 export class Lox {
     static hadError = false
@@ -58,6 +58,11 @@ export class Lox {
         const tokens: Token[] = scanner.scanTokens()
         const parser = new Parser(tokens)
         const statements = parser.parse()
+
+        if (this.hadError) return
+
+        const resolver = new Resolver(this.interpreter)
+        resolver.resolveStmts(statements)
 
         if (this.hadError) return
 
