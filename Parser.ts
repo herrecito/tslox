@@ -2,7 +2,8 @@ import Token, { TokenType } from "./Token"
 import { Lox } from "./main"
 
 import {
-    Assign, Var, Variable, Stmt, Print, Expression, Expr, Binary, Unary, Literal, Grouping, Block
+    Assign, Var, Variable, Stmt, Print, Expression, Expr, Binary, Unary, Literal, Grouping, Block,
+    If, Logical, While
 } from "./types"
 
 class ParseError extends Error {
@@ -44,15 +45,81 @@ export default class Parser {
     }
 
     statement(): Stmt {
+        if (this.match("FOR")) return this.forStatement()
+        if (this.match("IF")) return this.ifStatement()
         if (this.match("PRINT")) return this.printStatement()
+        if (this.match("WHILE")) return this.whileStatement()
         if (this.match("LEFT_BRACE")) return new Block(this.block())
         return this.expressionStatement()
+    }
+
+    forStatement(): Stmt {
+        this.consume("LEFT_PAREN", "Expect '(' after 'for'.")
+
+        let initializer: Stmt | undefined
+        if (this.match("SEMICOLON")) {
+            initializer = undefined
+        } else if (this.match("VAR")) {
+            initializer = this.varDeclaration()
+        } else {
+            initializer = this.expressionStatement()
+        }
+
+        let condition: Expr | undefined = undefined
+        if (!this.check("SEMICOLON")) {
+            condition = this.expression()
+        }
+        this.consume("SEMICOLON", "Expect ';' after loop condition.")
+
+        let increment: Expr | undefined = undefined
+        if (!this.check("RIGHT_PAREN")) {
+            increment = this.expression()
+        }
+        this.consume("RIGHT_PAREN", "Expect ')' after for clauses.")
+
+        let body = this.statement()
+
+        if (increment !== undefined) {
+            body = new Block([body, new Expression(increment)])
+        }
+
+        if (condition === undefined) condition = new Literal(true)
+        body = new While(condition, body)
+
+        if (initializer !== undefined) {
+            body = new Block([initializer, body])
+        }
+
+        return body
+    }
+
+    ifStatement(): Stmt {
+        this.consume("LEFT_PAREN", "Expect '(' after 'if'.")
+        const condition = this.expression()
+        this.consume("RIGHT_PAREN", "Expect ')' after if condition.")
+
+        const thenBranch = this.statement()
+        let elseBranch: Stmt | undefined = undefined
+        if (this.match("ELSE")) {
+            elseBranch = this.statement()
+        }
+
+        return new If(condition, thenBranch, elseBranch)
     }
 
     printStatement(): Stmt {
         const value = this.expression()
         this.consume("SEMICOLON", "Expect ';' after value.")
         return new Print(value)
+    }
+
+    whileStatement(): Stmt {
+        this.consume("LEFT_PAREN", "Expect '(' after 'while'.")
+        const condition = this.expression()
+        this.consume("RIGHT_PAREN", "Expect ')' after while condition.")
+        const body = this.statement()
+
+        return new While(condition, body)
     }
 
     varDeclaration(): Stmt {
@@ -84,7 +151,7 @@ export default class Parser {
     }
 
     assignment(): Expr {
-        const expr = this.equality()
+        const expr = this.or()
 
         if (this.match("EQUAL")) {
             const equals = this.previous()
@@ -95,6 +162,30 @@ export default class Parser {
             }
 
             this.error(equals, "Invalid assignment target.")
+        }
+
+        return expr
+    }
+
+    or(): Expr {
+        let expr = this.and()
+
+        while (this.match("OR")) {
+            const operator = this.previous()
+            const right = this.and()
+            expr = new Logical(expr, operator, right)
+        }
+
+        return expr
+    }
+
+    and(): Expr {
+        let expr = this.equality()
+
+        while (this.match("AND")) {
+            const operator = this.previous()
+            const right = this.equality()
+            expr = new Logical(expr, operator, right)
         }
 
         return expr

@@ -1,6 +1,7 @@
 import Token, { ValueType } from "./Token"
 import {
-    Var, Variable, Stmt, StmtVisitor, Print, Expression, Expr, Literal, Visitor, Grouping, Unary, Binary, Assign, Block
+    Var, Variable, Stmt, StmtVisitor, Print, Expression, Expr, Literal, Visitor, Grouping, Unary,
+    Binary, Assign, Block, If, Logical, While
 } from "./types"
 
 import { Lox } from "./main"
@@ -20,6 +21,18 @@ export default class Interpreter implements Visitor<ValueType>, StmtVisitor<void
 
     visitLiteralExpr(expr: Literal): ValueType {
         return expr.value
+    }
+
+    visitLogicalExpr(expr: Logical): ValueType {
+        const left = this.evaluate(expr.left)
+
+        if (expr.operator.type == "OR") {
+            if (this.isTruthy(left)) return left
+        } else {
+            if (!this.isTruthy(left)) return left
+        }
+
+        return this.evaluate(expr.right)
     }
 
     visitGroupingExpr(expr: Grouping): ValueType {
@@ -146,6 +159,14 @@ export default class Interpreter implements Visitor<ValueType>, StmtVisitor<void
         this.evaluate(stmt.expression)
     }
 
+    visitIfStmt(stmt: If): void {
+        if (this.isTruthy(this.evaluate(stmt.condition))) {
+            this.execute(stmt.thenBranch)
+        } else if (stmt.elseBranch !== undefined) {
+            this.execute(stmt.elseBranch)
+        }
+    }
+
     visitPrintStmt(stmt: Print): void {
         const value = this.evaluate(stmt.expression)
         console.log(this.stringify(value))
@@ -157,6 +178,12 @@ export default class Interpreter implements Visitor<ValueType>, StmtVisitor<void
             value = this.evaluate(stmt.initializer)
         }
         this.#environment.define(stmt.name.lexeme, value)
+    }
+
+    visitWhileStmt(stmt: While): void {
+        while (this.isTruthy(this.evaluate(stmt.condition))) {
+            this.execute(stmt.body)
+        }
     }
 
     visitAssignExpr(expr: Assign): ValueType {
