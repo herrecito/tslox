@@ -1,5 +1,6 @@
-import Token, { ValueType } from "./Token"
-import { RuntimeError } from "./Interpreter"
+import Token from "./Token"
+import { ValueType } from "./types"
+import RuntimeError from "./RuntimeError"
 
 export default class Environment {
     enclosing?: Environment

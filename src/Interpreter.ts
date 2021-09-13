@@ -1,31 +1,18 @@
 import { performance } from "perf_hooks"
 
-import Token, { ValueType } from "./Token"
+import Token from "./Token"
 import {
+    ValueType,
     Var, Variable, Stmt, StmtVisitor, Print, Expression, Expr, Literal, ExprVisitor, Grouping, Unary,
     Binary, Assign, Block, If, Logical, While, Call, Func, Return
 } from "./types"
 
 import { Lox } from "./main"
 import Environment from "./Environment"
-import LoxCallable, { LoxFunction } from "./LoxCallable"
-
-export class RuntimeError extends Error {
-    token: Token
-
-    constructor(token: Token, message: string) {
-        super(message)
-        this.token = token
-    }
-}
-
-export class ReturnException {
-    value: ValueType
-
-    constructor(value: ValueType) {
-        this.value = value
-    }
-}
+import LoxCallable from "./LoxCallable"
+import LoxFunction from "./LoxFunction"
+import RuntimeError from "./RuntimeError"
+import ReturnException from "./ReturnException"
 
 export default class Interpreter implements ExprVisitor<ValueType>, StmtVisitor<void> {
     globals = new Environment()

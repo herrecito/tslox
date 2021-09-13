@@ -1,7 +1,8 @@
-import Token, { TokenType } from "./Token"
+import Token from "./Token"
 import { Lox } from "./main"
 
 import {
+    TokenType,
     Assign, Var, Variable, Stmt, Print, Expression, Expr, Binary, Unary, Literal, Grouping, Block,
     If, Logical, While, Call, Func, Return
 } from "./types"

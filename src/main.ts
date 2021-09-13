@@ -4,8 +4,9 @@ import * as readline from "readline"
 import Token from "./Token"
 import Scanner from "./Scanner"
 import Parser from "./Parser"
-import Interpreter, { RuntimeError } from "./Interpreter"
+import Interpreter from "./Interpreter"
 import Resolver from "./Resolver"
+import RuntimeError from "./RuntimeError"
 
 export class Lox {
     static hadError = false

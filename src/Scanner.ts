@@ -1,5 +1,6 @@
-import Token, { TokenType } from "./Token"
+import Token from "./Token"
 import { Lox } from "./main"
+import { TokenType } from "./types"
 
 export default class Scanner {
     #source: string
