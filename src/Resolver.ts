@@ -1,17 +1,17 @@
 import {
-    FunctionType,
+    FunctionType, ClassType,
     ExprVisitor, StmtVisitor, Block, Stmt, Var, Variable, Expr, Assign, Func, Expression, If, Print,
-    Return, While, Binary, Call, Grouping, Literal, Logical, Unary
+    Return, While, Binary, Call, Grouping, Literal, Logical, Unary, Class, Get, Set, This
 } from "./types"
 import Interpreter from "./Interpreter"
 import Token from "./Token"
 import { Lox } from "./main"
 
-
 export default class Resolver implements StmtVisitor<void>, ExprVisitor<void> {
     interpreter: Interpreter
     scopes = new Array<Map<string, boolean>>()
     currentFunction: FunctionType = "NONE"
+    currentClass: ClassType = "NONE"
 
     constructor(interpreter: Interpreter) {
         this.interpreter = interpreter
@@ -21,6 +21,26 @@ export default class Resolver implements StmtVisitor<void>, ExprVisitor<void> {
         this.beginScope()
         this.resolveStmts(stmt.statements)
         this.endScope()
+    }
+
+    visitClassStmt(stmt: Class): void {
+        const enclosingClass = this.currentClass
+        this.currentClass = "CLASS"
+        this.declare(stmt.name) // define?
+
+        this.beginScope()
+        this.scopes[this.scopes.length-1].set("this", true)
+
+        for (const method of stmt.methods) {
+            let decl: FunctionType = "METHOD"
+            if (method.name.lexeme == "init") {
+                decl = "INITIALIZER"
+            }
+            this.resolveFunction(method, decl)
+        }
+        this.define(stmt.name)
+        this.endScope()
+        this.currentClass = enclosingClass
     }
 
     visitExpressionStmt(stmt: Expression): void {
@@ -49,6 +69,10 @@ export default class Resolver implements StmtVisitor<void>, ExprVisitor<void> {
         }
 
         if (stmt.value !== undefined) {
+            if (this.currentFunction == "INITIALIZER") {
+                Lox.errorWithToken(stmt.keyword,
+                    "Can't return a value from an initializer.")
+            }
             this.resolveExpr(stmt.value)
         }
     }
@@ -84,6 +108,10 @@ export default class Resolver implements StmtVisitor<void>, ExprVisitor<void> {
         }
     }
 
+     visitGetExpr(expr: Get): void {
+         this.resolveExpr(expr.obj)
+     }
+
     visitGroupingExpr(expr: Grouping): void {
         this.resolveExpr(expr.expression)
     }
@@ -95,6 +123,19 @@ export default class Resolver implements StmtVisitor<void>, ExprVisitor<void> {
     visitLogicalExpr(expr: Logical): void {
         this.resolveExpr(expr.left)
         this.resolveExpr(expr.right)
+    }
+
+    visitSetExpr(expr: Set): void {
+        this.resolveExpr(expr.value)
+        this.resolveExpr(expr.obj)
+    }
+
+    visitThisExpr(expr: This): void {
+        if (this.currentClass == "NONE") {
+            Lox.errorWithToken(expr.keyword, "Can't use 'this' outside of a class.")
+        } else {
+            this.resolveLocal(expr, expr.keyword)
+        }
     }
 
     visitUnaryExpr(expr: Unary): void {

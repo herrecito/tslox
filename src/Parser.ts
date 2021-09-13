@@ -4,7 +4,7 @@ import { Lox } from "./main"
 import {
     TokenType,
     Assign, Var, Variable, Stmt, Print, Expression, Expr, Binary, Unary, Literal, Grouping, Block,
-    If, Logical, While, Call, Func, Return
+    If, Logical, While, Call, Func, Return, Class, Get, Set, This
 } from "./types"
 
 class ParseError extends Error {
@@ -33,6 +33,7 @@ export default class Parser {
 
     declaration(): Stmt | undefined {
         try {
+            if (this.match("CLASS")) return this.classDeclaration()
             if (this.match("FUN")) return this.function("function")
             if (this.match("VAR")) return this.varDeclaration()
             return this.statement()
@@ -44,6 +45,20 @@ export default class Parser {
                 throw e
             }
         }
+    }
+
+    classDeclaration(): Stmt {
+        const name = this.consume("IDENTIFIER", "Expect class name.")
+        this.consume("LEFT_BRACE", "Expect '{' before class body.")
+
+        const methods: Func[] = []
+        while (!this.check("RIGHT_BRACE") && !this.isAtEnd()) {
+            methods.push(this.function("method"))
+        }
+
+        this.consume("RIGHT_BRACE", "Expect '}' after class body.")
+
+        return new Class(name, methods)
     }
 
     statement(): Stmt {
@@ -192,6 +207,9 @@ export default class Parser {
 
             if (expr instanceof Variable) {
                 return new Assign(expr.name, value)
+            } else if (expr instanceof Get) {
+                const get = expr as Get
+                return new Set(get.obj, get.name, value)
             }
 
             this.error(equals, "Invalid assignment target.")
@@ -304,6 +322,10 @@ export default class Parser {
         while (true) {
             if (this.match("LEFT_PAREN")) {
                 expr = this.finishCall(expr)
+            } else if (this.match("DOT")) {
+                const name = this.consume("IDENTIFIER",
+                    "Expect property name after '.'.")
+                expr = new Get(expr, name)
             } else {
                 break;
             }
@@ -320,6 +342,8 @@ export default class Parser {
         if (this.match("NUMBER", "STRING")) {
             return new Literal(this.previous().literal)
         }
+
+        if (this.match("THIS")) return new This(this.previous())
 
         if (this.match("IDENTIFIER")) {
             return new Variable(this.previous())

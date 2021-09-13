@@ -4,13 +4,15 @@ import Token from "./Token"
 import {
     ValueType,
     Var, Variable, Stmt, StmtVisitor, Print, Expression, Expr, Literal, ExprVisitor, Grouping, Unary,
-    Binary, Assign, Block, If, Logical, While, Call, Func, Return
+    Binary, Assign, Block, If, Logical, While, Call, Func, Return, Class, Get, Set, This
 } from "./types"
 
 import { Lox } from "./main"
 import Environment from "./Environment"
 import LoxCallable from "./LoxCallable"
 import LoxFunction from "./LoxFunction"
+import LoxClass from "./LoxClass"
+import LoxInstance from "./LoxInstance"
 import RuntimeError from "./RuntimeError"
 import ReturnException from "./ReturnException"
 
@@ -49,6 +51,23 @@ export default class Interpreter implements ExprVisitor<ValueType>, StmtVisitor<
         }
 
         return this.evaluate(expr.right)
+    }
+
+    visitSetExpr(expr: Set): ValueType {
+        const obj = this.evaluate(expr.obj)
+
+        if (!(obj instanceof LoxInstance)) {
+            throw new RuntimeError(expr.name,
+                "Only instances have fields.")
+        }
+
+        const value = this.evaluate(expr.value)
+        obj.set(expr.name, value)
+        return value
+    }
+
+    visitThisExpr(expr: This): ValueType {
+        return this.lookUpVariable(expr.keyword, expr)
     }
 
     visitGroupingExpr(expr: Grouping): ValueType {
@@ -145,6 +164,7 @@ export default class Interpreter implements ExprVisitor<ValueType>, StmtVisitor<
         }
 
         if (!(callee instanceof LoxCallable)) {
+            console.log(typeof(callee), callee, callee instanceof LoxCallable)
             throw new RuntimeError(expr.paren, "Can only call functions and classes.")
         }
 
@@ -154,6 +174,15 @@ export default class Interpreter implements ExprVisitor<ValueType>, StmtVisitor<
                 `Expected ${func.arity()} arguments but got ${args.length}.`)
         }
         return func.call(this, args)
+    }
+
+    visitGetExpr(expr: Get): ValueType {
+        const obj = this.evaluate(expr.obj)
+        if (obj instanceof LoxInstance) {
+            return obj.get(expr.name)
+        }
+
+        throw new RuntimeError(expr.name, "Only instances have properties.")
     }
 
     checkNumberOperands(operator: Token, left: ValueType, right: ValueType): void {
@@ -204,12 +233,23 @@ export default class Interpreter implements ExprVisitor<ValueType>, StmtVisitor<
         this.executeBlock(block.statements, new Environment(this.#environment))
     }
 
+    visitClassStmt(stmt: Class): void {
+        this.#environment.define(stmt.name.lexeme, undefined)
+        const methods = new Map<string, LoxFunction>()
+        for (const method of stmt.methods) {
+            const func = new LoxFunction(method, this.#environment, method.name.lexeme == "init")
+            methods.set(method.name.lexeme, func)
+        }
+        const klass = new LoxClass(stmt.name.lexeme, methods)
+        this.#environment.assign(stmt.name, klass)
+    }
+
     visitExpressionStmt(stmt: Expression): void {
         this.evaluate(stmt.expression)
     }
 
     visitFuncStmt(stmt: Func): void {
-        const func = new LoxFunction(stmt, this.#environment)
+        const func = new LoxFunction(stmt, this.#environment, false)
         this.#environment.define(stmt.name.lexeme, func)
     }
 

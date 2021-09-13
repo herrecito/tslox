@@ -1,7 +1,10 @@
 import Token from "./Token"
 import LoxCallable from "./LoxCallable"
+import LoxInstance from "./LoxInstance"
 
-export type FunctionType = "NONE" | "FUNCTION"
+export type FunctionType = "NONE" | "FUNCTION" | "METHOD" | "INITIALIZER"
+
+export type ClassType = "NONE" | "CLASS"
 
 export type TokenType =
     // Single-character tokens.
@@ -19,7 +22,7 @@ export type TokenType =
     | "AND" | "CLASS" | "ELSE" | "FALSE" | "FUN" | "FOR" | "IF" | "NIL" | "OR" | "PRINT" | "RETURN"
     | "SUPER" | "THIS" | "TRUE" | "VAR" | "WHILE" | "EOF"
 
-export type ValueType = string | number | boolean | undefined | LoxCallable
+export type ValueType = string | number | boolean | undefined | LoxCallable | LoxInstance
 
 export interface Stmt {
     accept<R>(visitor: StmtVisitor<R>): R
@@ -34,6 +37,20 @@ export class Block implements Stmt {
 
     accept<R>(visitor: StmtVisitor<R>): R {
         return visitor.visitBlockStmt(this)
+    }
+}
+
+export class Class implements Stmt {
+    name: Token
+    methods: Func[]
+
+    constructor(name: Token, methods: Func[]) {
+        this.name = name
+        this.methods = methods
+    }
+
+    accept<R>(visitor: StmtVisitor<R>): R {
+        return visitor.visitClassStmt(this)
     }
 }
 
@@ -185,6 +202,36 @@ export class Call implements Expr {
     }
 }
 
+export class Get implements Expr {
+    obj: Expr
+    name: Token
+
+    constructor(obj: Expr, name: Token) {
+        this.obj = obj
+        this.name = name
+    }
+
+    accept<R>(visitor: ExprVisitor<R>): R {
+        return visitor.visitGetExpr(this)
+    }
+}
+
+export class Set implements Expr {
+    obj: Expr
+    name: Token
+    value: Expr
+
+    constructor(obj: Expr, name: Token, value: Expr) {
+        this.obj = obj
+        this.name = name
+        this.value = value
+    }
+
+    accept<R>(visitor: ExprVisitor<R>): R {
+        return visitor.visitSetExpr(this)
+    }
+}
+
 export class Logical implements Expr {
     left: Expr
     operator: Token
@@ -225,6 +272,18 @@ export class Literal implements Expr {
     }
 }
 
+export class This implements Expr {
+    keyword: Token
+
+    constructor(keyword: Token) {
+        this.keyword = keyword
+    }
+
+    accept<R>(visitor: ExprVisitor<R>): R {
+        return visitor.visitThisExpr(this)
+    }
+}
+
 export class Unary implements Expr {
     operator: Token
     right: Expr
@@ -260,6 +319,9 @@ export interface ExprVisitor<R> {
     visitAssignExpr(assign: Assign): R
     visitLogicalExpr(expr: Logical): R
     visitCallExpr(expr: Call): R
+    visitGetExpr(expr: Get): R
+    visitSetExpr(expr: Set): R
+    visitThisExpr(expr: This): R
 }
 
 export interface StmtVisitor<R> {
@@ -271,4 +333,5 @@ export interface StmtVisitor<R> {
     visitWhileStmt(stmt: While): R
     visitFuncStmt(stmt: Func): R
     visitReturnStmt(stmt: Return): R
+    visitClassStmt(klass: Class): R
 }

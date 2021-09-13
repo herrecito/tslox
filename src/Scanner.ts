@@ -164,7 +164,7 @@ export default class Scanner {
     }
 
     isAlpha(c: string): boolean {
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= '>') || c ==  "_"
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c ==  "_"
     }
 
     isAlphaNumeric(c: string): boolean {
