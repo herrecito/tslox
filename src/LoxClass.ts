@@ -6,11 +6,13 @@ import LoxFunction from "./LoxFunction"
 
 export default class LoxClass extends LoxCallable {
     name: string
+    superclass?: LoxClass
     methods = new Map<string, LoxFunction>()
 
-    constructor(name: string, methods: Map<string, LoxFunction>) {
+    constructor(name: string, superclass: LoxClass | undefined, methods: Map<string, LoxFunction>) {
         super()
         this.name = name
+        this.superclass = superclass
         this.methods = methods
     }
 
@@ -32,6 +34,8 @@ export default class LoxClass extends LoxCallable {
     findMethod(name: string): LoxFunction | undefined {
         if (this.methods.has(name)) {
             return this.methods.get(name)
+        } else if (this.superclass !== undefined) {
+            return this.superclass.findMethod(name)
         } else {
             return undefined
         }

@@ -4,7 +4,7 @@ import { Lox } from "./main"
 import {
     TokenType,
     Assign, Var, Variable, Stmt, Print, Expression, Expr, Binary, Unary, Literal, Grouping, Block,
-    If, Logical, While, Call, Func, Return, Class, Get, Set, This
+    If, Logical, While, Call, Func, Return, Class, Get, Set, This, Super
 } from "./types"
 
 class ParseError extends Error {
@@ -49,6 +49,11 @@ export default class Parser {
 
     classDeclaration(): Stmt {
         const name = this.consume("IDENTIFIER", "Expect class name.")
+        let superclass: Variable | undefined = undefined
+        if (this.match("LESS")) {
+            this.consume("IDENTIFIER", "Expect superclass name.")
+            superclass = new Variable(this.previous())
+        }
         this.consume("LEFT_BRACE", "Expect '{' before class body.")
 
         const methods: Func[] = []
@@ -58,7 +63,7 @@ export default class Parser {
 
         this.consume("RIGHT_BRACE", "Expect '}' after class body.")
 
-        return new Class(name, methods)
+        return new Class(name, superclass, methods)
     }
 
     statement(): Stmt {
@@ -341,6 +346,13 @@ export default class Parser {
 
         if (this.match("NUMBER", "STRING")) {
             return new Literal(this.previous().literal)
+        }
+
+        if (this.match("SUPER")) {
+            const keyword = this.previous()
+            this.consume("DOT", "Expect '.' after 'super'.");
+            const method = this.consume("IDENTIFIER", "Expect superclass method name.")
+            return new Super(keyword, method)
         }
 
         if (this.match("THIS")) return new This(this.previous())

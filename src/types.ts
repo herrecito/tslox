@@ -4,7 +4,7 @@ import LoxInstance from "./LoxInstance"
 
 export type FunctionType = "NONE" | "FUNCTION" | "METHOD" | "INITIALIZER"
 
-export type ClassType = "NONE" | "CLASS"
+export type ClassType = "NONE" | "CLASS" | "SUBCLASS"
 
 export type TokenType =
     // Single-character tokens.
@@ -42,10 +42,12 @@ export class Block implements Stmt {
 
 export class Class implements Stmt {
     name: Token
+    superclass: Variable | undefined
     methods: Func[]
 
-    constructor(name: Token, methods: Func[]) {
+    constructor(name: Token, superclass: Variable | undefined, methods: Func[]) {
         this.name = name
+        this.superclass = superclass
         this.methods = methods
     }
 
@@ -272,6 +274,20 @@ export class Literal implements Expr {
     }
 }
 
+export class Super implements Expr {
+    keyword: Token
+    method: Token
+
+    constructor(keyword: Token, method: Token) {
+        this.keyword = keyword
+        this.method = method
+    }
+
+    accept<R>(visitor: ExprVisitor<R>): R {
+        return visitor.visitSuperExpr(this)
+    }
+}
+
 export class This implements Expr {
     keyword: Token
 
@@ -322,6 +338,7 @@ export interface ExprVisitor<R> {
     visitGetExpr(expr: Get): R
     visitSetExpr(expr: Set): R
     visitThisExpr(expr: This): R
+    visitSuperExpr(expr: Super): R
 }
 
 export interface StmtVisitor<R> {

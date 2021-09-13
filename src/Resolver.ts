@@ -1,7 +1,7 @@
 import {
     FunctionType, ClassType,
     ExprVisitor, StmtVisitor, Block, Stmt, Var, Variable, Expr, Assign, Func, Expression, If, Print,
-    Return, While, Binary, Call, Grouping, Literal, Logical, Unary, Class, Get, Set, This
+    Return, While, Binary, Call, Grouping, Literal, Logical, Unary, Class, Get, Set, This, Super
 } from "./types"
 import Interpreter from "./Interpreter"
 import Token from "./Token"
@@ -28,6 +28,22 @@ export default class Resolver implements StmtVisitor<void>, ExprVisitor<void> {
         this.currentClass = "CLASS"
         this.declare(stmt.name) // define?
 
+        if (stmt.superclass !== undefined &&
+            stmt.name.lexeme == stmt.superclass.name.lexeme)
+        {
+            Lox.errorWithToken(stmt.superclass.name, "A class can't inherit from itself.")
+        }
+
+        if (stmt.superclass != undefined) {
+            this.currentClass = "SUBCLASS"
+            this.resolveExpr(stmt.superclass)
+        }
+
+        if (stmt.superclass != undefined) {
+            this.beginScope()
+            this.scopes[this.scopes.length - 1].set("super", true)
+        }
+
         this.beginScope()
         this.scopes[this.scopes.length-1].set("this", true)
 
@@ -40,6 +56,7 @@ export default class Resolver implements StmtVisitor<void>, ExprVisitor<void> {
         }
         this.define(stmt.name)
         this.endScope()
+        if (stmt.superclass != undefined) this.endScope()
         this.currentClass = enclosingClass
     }
 
@@ -128,6 +145,15 @@ export default class Resolver implements StmtVisitor<void>, ExprVisitor<void> {
     visitSetExpr(expr: Set): void {
         this.resolveExpr(expr.value)
         this.resolveExpr(expr.obj)
+    }
+
+    visitSuperExpr(expr: Super): void {
+        if (this.currentClass == "NONE") {
+            Lox.errorWithToken(expr.keyword, "Can't use 'super' outside of a class.")
+        } else if (this.currentClass != "SUBCLASS") {
+            Lox.errorWithToken(expr.keyword, "Can't use 'super' in a class with no superclass.")
+        }
+        this.resolveLocal(expr, expr.keyword)
     }
 
     visitThisExpr(expr: This): void {

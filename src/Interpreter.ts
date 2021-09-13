@@ -4,7 +4,7 @@ import Token from "./Token"
 import {
     ValueType,
     Var, Variable, Stmt, StmtVisitor, Print, Expression, Expr, Literal, ExprVisitor, Grouping, Unary,
-    Binary, Assign, Block, If, Logical, While, Call, Func, Return, Class, Get, Set, This
+    Binary, Assign, Block, If, Logical, While, Call, Func, Return, Class, Get, Set, This, Super
 } from "./types"
 
 import { Lox } from "./main"
@@ -64,6 +64,17 @@ export default class Interpreter implements ExprVisitor<ValueType>, StmtVisitor<
         const value = this.evaluate(expr.value)
         obj.set(expr.name, value)
         return value
+    }
+
+    visitSuperExpr(expr: Super): ValueType {
+        const distance = this.locals.get(expr) as number // unsafe
+        const superclass = this.#environment.getAt(distance, "super") as LoxClass
+        const obj = this.#environment.getAt(distance - 1, "this") as LoxInstance
+        const method = superclass.findMethod(expr.method.lexeme)
+        if (method === undefined) {
+            throw new RuntimeError(expr.method, `Undefined property '{expr.method.lexeme}'.`)
+        }
+        return method.bind(obj)
     }
 
     visitThisExpr(expr: This): ValueType {
@@ -234,13 +245,30 @@ export default class Interpreter implements ExprVisitor<ValueType>, StmtVisitor<
     }
 
     visitClassStmt(stmt: Class): void {
+        let superclass: ValueType = undefined
+        if (stmt.superclass !== undefined ){
+            superclass = this.evaluate(stmt.superclass)
+            if (!(superclass instanceof LoxClass)) {
+                throw new RuntimeError(stmt.superclass.name, "Superclass must be a class.")
+            }
+        }
+
         this.#environment.define(stmt.name.lexeme, undefined)
+
+        if (stmt.superclass != undefined) {
+            this.#environment = new Environment(this.#environment)
+            this.#environment.define("super", superclass)
+        }
+
         const methods = new Map<string, LoxFunction>()
         for (const method of stmt.methods) {
             const func = new LoxFunction(method, this.#environment, method.name.lexeme == "init")
             methods.set(method.name.lexeme, func)
         }
-        const klass = new LoxClass(stmt.name.lexeme, methods)
+        const klass = new LoxClass(stmt.name.lexeme, superclass, methods)
+        if (superclass != undefined) {
+            this.#environment = this.#environment.enclosing as Environment // unsafe
+        }
         this.#environment.assign(stmt.name, klass)
     }
 
