@@ -1,23 +1,22 @@
 {
     "compilerOptions": {
+        "lib": ["es2020"],
         "module": "commonjs",
+        "target": "es2020",
+
+        "outDir": "output",
+
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+
         "noImplicitAny": true,
         "noImplicitReturns": true,
         "noUnusedLocals": true,
         "noFallthroughCasesInSwitch": true,
         "strictNullChecks": true,
-        "strictPropertyInitialization": true,
-        "target": "ES2015"
+        "strictPropertyInitialization": true
     },
-    "files": [
-        "main.ts",
-        "Token.ts",
-        "Scanner.ts",
-        "types.ts",
-        "Parser.ts",
-        "Interpreter.ts",
-        "Environment.ts",
-        "LoxCallable.ts",
-        "Resolver.ts"
-    ]
+    "include": ["./src/**/*"]
 }

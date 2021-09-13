@@ -2,16 +2,4 @@
 
 set -ex
 
-SRCS=(
-    "main.ts"
-    "Token.ts"
-    "Scanner.ts"
-    "types.ts"
-    "Parser.ts"
-    "Interpreter.ts"
-    "Environment.ts"
-    "LoxCallable.ts"
-    "Resolver.ts"
-)
-
-$(npm bin)/eslint ${SRCS[@]} && $(npm bin)/tsc && node main.js $@
+$(npm bin)/eslint ./src/**/*.ts && $(npm bin)/tsc && node output/main.js $@
